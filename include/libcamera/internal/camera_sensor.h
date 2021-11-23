@@ -66,7 +66,6 @@ protected:
 private:
 	LIBCAMERA_DISABLE_COPY(CameraSensor)
 
-	int generateId();
 	int validateSensorDriver();
 	void initVimcDefaultProperties();
 	void initStaticProperties();

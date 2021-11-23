@@ -6,14 +6,12 @@
  */
 
 #include "libcamera/internal/camera_sensor.h"
-#include "libcamera/internal/media_device.h"
 
 #include <algorithm>
 #include <float.h>
 #include <iomanip>
 #include <limits.h>
 #include <math.h>
-#include <regex>
 #include <string.h>
 
 #include <libcamera/property_ids.h>
@@ -22,8 +20,9 @@
 
 #include "libcamera/internal/bayer_format.h"
 #include "libcamera/internal/camera_sensor_properties.h"
+#include "libcamera/internal/camera_utils.h"
 #include "libcamera/internal/formats.h"
-#include "libcamera/internal/sysfs.h"
+#include "libcamera/internal/media_device.h"
 
 /**
  * \file camera_sensor.h
@@ -366,21 +365,13 @@ int CameraSensor::initProperties()
 	 * part of the entity name before the first space if the name contains
 	 * an I2C address, and use the full entity name otherwise.
 	 */
-	std::string entityName = entity_->name();
-	std::regex i2cRegex{ " [0-9]+-[0-9a-f]{4}" };
-	std::smatch match;
-
-	if (std::regex_search(entityName, match, i2cRegex))
-		model_ = entityName.substr(0, entityName.find(' '));
-	else
-		model_ = entityName;
-
+	model_ = extractModelFromEntityName(entity_->name());
 	properties_.set(properties::Model, utils::toAscii(model_));
 
 	/* Generate a unique ID for the sensor. */
-	int ret = generateId();
-	if (ret)
-		return ret;
+	id_ = generateIdForV4L2Device(subdev_.get(), model_);
+	if (id_.empty())
+		return -EINVAL;
 
 	/* Initialize the static properties from the sensor database. */
 	initStaticProperties();
@@ -818,30 +809,6 @@ void CameraSensor::updateControlInfo()
 std::string CameraSensor::logPrefix() const
 {
 	return "'" + entity_->name() + "'";
-}
-
-int CameraSensor::generateId()
-{
-	const std::string devPath = subdev_->devicePath();
-
-	/* Try to get ID from firmware description. */
-	id_ = sysfs::firmwareNodePath(devPath);
-	if (!id_.empty())
-		return 0;
-
-	/*
-	 * Virtual sensors not described in firmware
-	 *
-	 * Verify it's a platform device and construct ID from the deive path
-	 * and model of sensor.
-	 */
-	if (devPath.find("/sys/devices/platform/", 0) == 0) {
-		id_ = devPath.substr(strlen("/sys/devices/")) + " " + model();
-		return 0;
-	}
-
-	LOG(CameraSensor, Error) << "Can't generate sensor ID";
-	return -EINVAL;
 }
 
 } /* namespace libcamera */
