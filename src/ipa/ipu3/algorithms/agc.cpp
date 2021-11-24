@@ -137,7 +137,7 @@ double Agc::measureBrightness(const ipu3_uapi_stats_3a *stats,
 	}
 
 	/* Estimate the quantile mean of the top 2% of the histogram. */
-	return Histogram(Span<uint32_t>(hist)).interQuantileMean(0.98, 1.0);
+	return Histogram(Span<uint32_t>(hist)).interQuantileMean(0.7, 1.0);
 }
 
 /**
