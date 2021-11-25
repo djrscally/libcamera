@@ -161,30 +161,35 @@ int CIO2Device::init(const MediaDevice *media, unsigned int index)
 	}
 
 	/*
-	 * \todo Read the lens model from the sensor itself or from a device
-	 * database. For now use default values taken from ChromeOS database.
+	 * Sensors sometimes have ancillary devices such as a Lens or Flash
+	 * that could be linked to the MediaEntity - search for and handle
+	 * any such device (for now, we can only handle MEDIA_ENT_F_LENS)
+	 *
+	 * \todo Handle MEDIA_ENT_F_FLASH too.
 	 */
-	static std::unordered_map<std::string, std::string> sensorLens = {
-		{ "ov13858", "dw9714" },
-		{ "imx258", "dw9807" },
-		{ "imx355", "ak7375" }
-	};
+	const std::vector<MediaLink *> &ancillary_links = sensorEntity->ancillary_links();
+	if (!ancillary_links.empty()) {
+		for (auto it : ancillary_links) {
+			MediaEntity *ancillaryEntity = it->ancillary();
 
-	auto it = sensorLens.find(sensor_->model());
-	if (it != sensorLens.end()) {
-		const std::vector<MediaEntity *> &entities = media->entities();
-		for (auto ent : entities) {
-			if (ent->function() == MEDIA_ENT_F_LENS) {
-				lens_ = std::make_unique<CameraLens>(ent);
+			switch (ancillaryEntity->function()) {
+			case MEDIA_ENT_F_LENS:
+				lens_ = std::make_unique<CameraLens>(ancillaryEntity);
 				ret = lens_->init();
-				if (!ret && lens_->model() == it->second) {
-					break;
+				if (ret) {
+					LOG(IPU3, Error)
+						<< "Error during CameraLens init";
+					return ret;
 				}
-				lens_.reset();
+				break;
+			case MEDIA_ENT_F_FLASH:
+				LOG(IPU3, Warning)
+					<< "Flash not yet supported";
+				break;
+			default:
+				LOG(IPU3, Warning)
+					<< "Unsupported entity function";
 			}
-			if (!lens_)
-				LOG(IPU3, Warning) << "Lens device "
-						   << it->second << " not found";
 		}
 	}
 
