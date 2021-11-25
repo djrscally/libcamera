@@ -134,7 +134,7 @@ int MediaLink::setEnabled(bool enable)
 }
 
 /**
- * \brief Construct a MediaLink
+ * \brief Construct a MediaLink between two pads
  * \param[in] link The media link kernel data
  * \param[in] source The source pad at the origin of the link
  * \param[in] sink The sink pad at the destination of the link
@@ -143,6 +143,19 @@ MediaLink::MediaLink(const struct media_v2_link *link, MediaPad *source,
 		     MediaPad *sink)
 	: MediaObject(source->device(), link->id), source_(source),
 	  sink_(sink), flags_(link->flags)
+{
+}
+
+/**
+ * \brief Construct a MediaLink between two entities
+ * \param[in] link The media link kernel data
+ * \param[in] primary The primary entity at the origin of the link
+ * \param[in] ancillary The ancillary entity at the destination of the link
+ */
+MediaLink::MediaLink(const struct media_v2_link *link, MediaEntity *primary,
+		     MediaEntity *ancillary)
+	: MediaObject(primary->device(), link->id), primary_(primary),
+	  ancillary_(ancillary), flags_(link->flags)
 {
 }
 
@@ -376,6 +389,15 @@ int MediaEntity::setDeviceNode(const std::string &deviceNode)
 	deviceNode_ = deviceNode;
 
 	return 0;
+}
+
+/**
+ * \brief Add an ancillary link to the MediaEntity
+ * \param[in] link Pointer to the MediaLink class
+ */
+void MediaEntity::addLink(MediaLink *link)
+{
+	ancillary_links_.push_back(link);
 }
 
 /**

@@ -45,6 +45,8 @@ class MediaLink : public MediaObject
 public:
 	MediaPad *source() const { return source_; }
 	MediaPad *sink() const { return sink_; }
+	MediaEntity *primary() const { return primary_; };
+	MediaEntity *ancillary() const { return ancillary_; };
 	unsigned int flags() const { return flags_; }
 	int setEnabled(bool enable);
 
@@ -55,9 +57,13 @@ private:
 
 	MediaLink(const struct media_v2_link *link,
 		  MediaPad *source, MediaPad *sink);
+	MediaLink(const struct media_v2_link *link,
+		  MediaEntity *primary, MediaEntity *ancillary);
 
 	MediaPad *source_;
 	MediaPad *sink_;
+	MediaEntity *primary_;
+	MediaEntity *ancillary_;
 	unsigned int flags_;
 };
 
@@ -104,11 +110,14 @@ public:
 	unsigned int deviceMinor() const { return minor_; }
 
 	const std::vector<MediaPad *> &pads() const { return pads_; }
+	const std::vector<MediaLink *> &ancillary_links() const { return ancillary_links_; }
 
 	const MediaPad *getPadByIndex(unsigned int index) const;
 	const MediaPad *getPadById(unsigned int id) const;
 
 	int setDeviceNode(const std::string &deviceNode);
+
+	void addLink(MediaLink *link);
 
 private:
 	LIBCAMERA_DISABLE_COPY_AND_MOVE(MediaEntity)
@@ -129,6 +138,7 @@ private:
 	unsigned int minor_;
 
 	std::vector<MediaPad *> pads_;
+	std::vector<MediaLink *> ancillary_links_;
 };
 
 } /* namespace libcamera */
