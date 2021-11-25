@@ -699,45 +699,67 @@ bool MediaDevice::populateLinks(const struct media_v2_topology &topology)
 {
 	struct media_v2_link *mediaLinks = reinterpret_cast<struct media_v2_link *>
 					   (topology.ptr_links);
+	unsigned int link_type;
+	MediaLink *link;
 
 	for (unsigned int i = 0; i < topology.num_links; ++i) {
 		/*
 		 * Skip links between entities and interfaces: we only care
-		 * about pad-2-pad links here.
+		 * about pad-2-pad and entity-2-entity links here.
 		 */
 		if ((mediaLinks[i].flags & MEDIA_LNK_FL_LINK_TYPE) ==
 		    MEDIA_LNK_FL_INTERFACE_LINK)
 			continue;
 
-		/* Store references to source and sink pads in the link. */
+		/* Store references to source and sink objects in the link. */
 		unsigned int source_id = mediaLinks[i].source_id;
-		MediaPad *source = dynamic_cast<MediaPad *>
-				   (object(source_id));
+		MediaObject *source = object(source_id);
 		if (!source) {
 			LOG(MediaDevice, Error)
-				<< "Failed to find pad with id: "
+				<< "Failed to find MediaObject with id: "
 				<< source_id;
 			return false;
 		}
 
 		unsigned int sink_id = mediaLinks[i].sink_id;
-		MediaPad *sink = dynamic_cast<MediaPad *>
-				 (object(sink_id));
+		MediaObject *sink = object(sink_id);
 		if (!sink) {
 			LOG(MediaDevice, Error)
-				<< "Failed to find pad with id: "
+				<< "Failed to find MediaObject with id: "
 				<< sink_id;
 			return false;
 		}
 
-		MediaLink *link = new MediaLink(&mediaLinks[i], source, sink);
-		if (!addObject(link)) {
-			delete link;
-			return false;
-		}
+		link_type = mediaLinks[i].flags & MEDIA_LNK_FL_LINK_TYPE;
 
-		source->addLink(link);
-		sink->addLink(link);
+		switch (link_type) {
+		case MEDIA_LNK_FL_DATA_LINK:
+			link = new MediaLink(&mediaLinks[i],
+					     dynamic_cast<MediaPad *>(source),
+					     dynamic_cast<MediaPad *>(sink));
+			if (!addObject(link)) {
+				delete link;
+				return false;
+			}
+
+			link->source()->addLink(link);
+			link->sink()->addLink(link);
+
+			break;
+		case MEDIA_LNK_FL_ANCILLARY_LINK:
+			link = new MediaLink(&mediaLinks[i],
+					     dynamic_cast<MediaEntity *>(source),
+					     dynamic_cast<MediaEntity *>(sink));
+			if (!addObject(link)) {
+				delete link;
+				return false;
+			}
+
+			link->primary()->addLink(link);
+			link->ancillary()->addLink(link);
+
+			break;
+		}
 	}
 
 	return true;
