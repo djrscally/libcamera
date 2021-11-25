@@ -327,6 +327,21 @@ void MediaPad::addLink(MediaLink *link)
  */
 
 /**
+ * \fn MediaEntity::ancillaryEntities()
+ * \brief Retrieve all ancillary entities of the entity
+ * \return The list of the entity's ancillary entities
+ */
+
+/**
+ * \brief Add a MediaEntity to the list of ancillary entities
+ * \param[in] ancillaryEntity The instance of MediaEntity to add
+ */
+void MediaEntity::addAncillaryEntity(MediaEntity *ancillaryEntity)
+{
+	ancillaryEntities_.push_back(ancillaryEntity);
+}
+
+/**
  * \brief Get a pad in this entity by its index
  * \param[in] index The 0-based pad index
  * \return The pad identified by \a index, or nullptr if no such pad exist
