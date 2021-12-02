@@ -663,6 +663,7 @@ void IPAIPU3::parseStatistics(unsigned int frame,
  */
 void IPAIPU3::setControls(unsigned int frame)
 {
+	uint32_t focus;
 	IPU3Action op;
 	op.op = ActionSetSensorControls;
 
@@ -673,6 +674,12 @@ void IPAIPU3::setControls(unsigned int frame)
 	ctrls.set(V4L2_CID_EXPOSURE, static_cast<int32_t>(exposure_));
 	ctrls.set(V4L2_CID_ANALOGUE_GAIN, static_cast<int32_t>(gain_));
 	op.sensorControls = ctrls;
+
+	focus = context_.frameContext.af.focus;
+
+	ControlList lensCtrls(lensCtrls_);
+	lensCtrls.set(V4L2_CID_FOCUS_ABSOLUTE, static_cast<int32_t>(focus));
+	op.lensControls = lensCtrls;
 
 	queueFrameAction.emit(frame, op);
 }
